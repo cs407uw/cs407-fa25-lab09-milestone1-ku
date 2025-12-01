@@ -36,7 +36,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.cs407.lab09.R
 import com.cs407.lab09.ui.theme.Lab09Theme
 import kotlin.math.roundToInt
 
@@ -62,43 +61,47 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun GameScreen(viewModel: BallViewModel) {
-    // TODO: Initialize the sensorManager
+    val context = LocalContext.current
+
+    // Initialize the sensorManager
     val sensorManager = remember {
-        // ... getSystemService ...
+        context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     }
 
-    // TODO: Get the gravitySensor
+    // Get the gravitySensor
     val gravitySensor = remember {
-        // ... getDefaultSensor ...
+        sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
     }
 
-    // This effect runs when the composable enters the screen
-    // and cleans up when it leaves
+    // This effect runs when the composable enters the screen and cleans up when it leaves
     DisposableEffect(sensorManager, gravitySensor) {
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent?) {
-                // TODO: Pass the sensor event to the ViewModel
-                event?.let {
-                    // ...
+                // Pass the sensor event to the ViewModel
+                event?.let { ev ->
+                    viewModel.onSensorDataChanged(ev)
                 }
             }
+
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
                 // Do nothing
             }
         }
 
-        // TODO: Register the sensor listener
-        // (Don't forget to add a null check for gravitySensor!)
+        // Register the sensor listener (if sensor is available)
         if (gravitySensor != null) {
-            // ... sensorManager.registerListener ...
+            sensorManager.registerListener(
+                listener,
+                gravitySensor,
+                SensorManager.SENSOR_DELAY_FASTEST
+            )
         }
 
         // onDispose is called when the composable leaves the screen
         onDispose {
-            // TODO: Unregister the sensor listener
-            // (Don't forget to add a null check for gravitySensor!)
+            // Unregister the sensor listener
             if (gravitySensor != null) {
-                // ... sensorManager.unregisterListener ...
+                sensorManager.unregisterListener(listener, gravitySensor)
             }
         }
     }
@@ -108,7 +111,8 @@ fun GameScreen(viewModel: BallViewModel) {
         // 1. The Reset Button
         Button(
             onClick = {
-                // TODO: Call the reset function on the ViewModel
+                // Call the reset function on the ViewModel
+                viewModel.reset()
             },
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
@@ -121,12 +125,8 @@ fun GameScreen(viewModel: BallViewModel) {
         val ballSize = 50.dp
         val ballSizePx = with(LocalDensity.current) { ballSize.toPx() }
 
-        // TODO: Collect the ball's position from the ViewModel
-        // val ballPosition by viewModel.ballPosition.collectAsStateWithLifecycle()
-
-        // Placeholder, remove when TODO is done:
-        val ballPosition = Offset.Zero
-
+        // Collect the ball's position from the ViewModel
+        val ballPosition by viewModel.ballPosition.collectAsStateWithLifecycle()
 
         Box(
             modifier = Modifier
@@ -137,8 +137,12 @@ fun GameScreen(viewModel: BallViewModel) {
                     contentScale = ContentScale.FillBounds
                 )
                 .onSizeChanged { size ->
-                    // TODO: Tell the ViewModel the size of the field
-                    // viewModel.initBall(...)
+                    // Tell the ViewModel the size of the field
+                    viewModel.initBall(
+                        fieldWidth = size.width.toFloat(),
+                        fieldHeight = size.height.toFloat(),
+                        ballSizePx = ballSizePx
+                    )
                 }
         ) {
             // 3. The Ball
@@ -148,8 +152,6 @@ fun GameScreen(viewModel: BallViewModel) {
                 modifier = Modifier
                     .size(ballSize)
                     .offset {
-                        // TODO: Use the collected ballPosition to set the offset
-                        // Hint: You need to convert Float to Int
                         IntOffset(
                             x = ballPosition.x.roundToInt(),
                             y = ballPosition.y.roundToInt()
@@ -159,3 +161,4 @@ fun GameScreen(viewModel: BallViewModel) {
         }
     }
 }
+

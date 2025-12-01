@@ -1,13 +1,5 @@
 package com.cs407.lab09
 
-/**
- * Represents a ball that can move. (No Android UI imports!)
- *
- * Constructor parameters:
- * - backgroundWidth: the width of the background, of type Float
- * - backgroundHeight: the height of the background, of type Float
- * - ballSize: the width/height of the ball, of type Float
- */
 class Ball(
     private val backgroundWidth: Float,
     private val backgroundHeight: Float,
@@ -23,39 +15,86 @@ class Ball(
     private var isFirstUpdate = true
 
     init {
-        // TODO: Call reset()
+        reset()
     }
 
-    /**
-     * Updates the ball's position and velocity based on the given acceleration and time step.
-     * (See lab handout for physics equations)
-     */
     fun updatePositionAndVelocity(xAcc: Float, yAcc: Float, dT: Float) {
-        if(isFirstUpdate) {
+        // FIRST call: just initialize acceleration history
+        if (isFirstUpdate) {
             isFirstUpdate = false
             accX = xAcc
             accY = yAcc
             return
         }
 
+        // Ignore invalid/zero dt
+        if (dT <= 0f) return
+
+        // ---- X axis (Eq. 1 & 2 from handout) ----
+        val newVx = velocityX + 0.5f * (accX + xAcc) * dT
+        val dx = velocityX * dT + (1f / 6f) * dT * dT * (3f * accX + xAcc)
+
+        // ---- Y axis ----
+        val newVy = velocityY + 0.5f * (accY + yAcc) * dT
+        val dy = velocityY * dT + (1f / 6f) * dT * dT * (3f * accY + yAcc)
+
+        posX += dx
+        posY += dy
+
+        velocityX = newVx
+        velocityY = newVy
+
+        accX = xAcc
+        accY = yAcc
+
+        checkBoundaries()
     }
 
-    /**
-     * Ensures the ball does not move outside the boundaries.
-     * When it collides, velocity and acceleration perpendicular to the
-     * boundary should be set to 0.
-     */
     fun checkBoundaries() {
-        // TODO: implement the checkBoundaries function
-        // (Check all 4 walls: left, right, top, bottom)
+        val radius = ballSize / 2f
+
+        // LEFT wall
+        if (posX - radius < 0f) {
+            posX = radius
+            velocityX = 0f
+            accX = 0f
+        }
+
+        // RIGHT wall
+        if (posX + radius > backgroundWidth) {
+            posX = backgroundWidth - radius
+            velocityX = 0f
+            accX = 0f
+        }
+
+        // TOP wall
+        if (posY - radius < 0f) {
+            posY = radius
+            velocityY = 0f
+            accY = 0f
+        }
+
+        // BOTTOM wall
+        if (posY + radius > backgroundHeight) {
+            posY = backgroundHeight - radius
+            velocityY = 0f
+            accY = 0f
+        }
     }
 
-    /**
-     * Resets the ball to the center of the screen with zero
-     * velocity and acceleration.
-     */
     fun reset() {
-        // TODO: implement the reset function
-        // (Reset posX, posY, velocityX, velocityY, accX, accY, isFirstUpdate)
+        val radius = ballSize / 2f
+
+        posX = backgroundWidth / 2f
+        posY = backgroundHeight / 2f
+
+        velocityX = 0f
+        velocityY = 0f
+
+        accX = 0f
+        accY = 0f
+
+        isFirstUpdate = true
     }
 }
+

@@ -14,58 +14,62 @@ class BallViewModel : ViewModel() {
     private var ball: Ball? = null
     private var lastTimestamp: Long = 0L
 
-    // Expose the ball's position as a StateFlow
     private val _ballPosition = MutableStateFlow(Offset.Zero)
     val ballPosition: StateFlow<Offset> = _ballPosition.asStateFlow()
 
-    /**
-     * Called by the UI when the game field's size is known.
-     */
     fun initBall(fieldWidth: Float, fieldHeight: Float, ballSizePx: Float) {
         if (ball == null) {
-            // TODO: Initialize the ball instance
-            // ball = Ball(...)
-
-            // TODO: Update the StateFlow with the initial position
-            // _ballPosition.value = Offset(ball!!.posX, ball!!.posY)
+            ball = Ball(
+                backgroundWidth = fieldWidth,
+                backgroundHeight = fieldHeight,
+                ballSize = ballSizePx
+            )
+            ball?.let { b ->
+                _ballPosition.value = Offset(b.posX, b.posY)
+            }
         }
     }
 
-    /**
-     * Called by the SensorEventListener in the UI.
-     */
     fun onSensorDataChanged(event: SensorEvent) {
-        // Ensure ball is initialized
         val currentBall = ball ?: return
 
         if (event.sensor.type == Sensor.TYPE_GRAVITY) {
             if (lastTimestamp != 0L) {
-                // TODO: Calculate the time difference (dT) in seconds
-                // Hint: event.timestamp is in nanoseconds
-                // val NS2S = 1.0f / 1000000000.0f
-                // val dT = ...
+                // dT in seconds, using event.timestamp (ns)
+                val NS2S = 1.0f / 1_000_000_000.0f
+                val dT = (event.timestamp - lastTimestamp) * NS2S
 
-                // TODO: Update the ball's position and velocity
-                // Hint: The sensor's x and y-axis are inverted
-                // currentBall.updatePositionAndVelocity(xAcc = ..., yAcc = ..., dT = ...)
+                // Raw gravity components (sensor coordinates)
+                val rawX = event.values[0]
+                val rawY = event.values[1]
 
-                // TODO: Update the StateFlow to notify the UI
-                // _ballPosition.update { Offset(currentBall.posX, currentBall.posY) }
+                val scale = 2.5f
+
+                // The lab hint: x and y axes are inverted relative to screen,
+                // and gravity vector is opposite direction of real gravity.
+                // This mapping usually feels right in portrait:
+                val xAcc = -rawX * scale
+                val yAcc =  rawY * scale          // adjust if this feels inverted
+
+                currentBall.updatePositionAndVelocity(
+                    xAcc = xAcc,
+                    yAcc = yAcc,
+                    dT = dT
+                )
+
+                _ballPosition.update { Offset(currentBall.posX, currentBall.posY) }
             }
 
-            // TODO: Update the lastTimestamp
-            // lastTimestamp = ...
+            lastTimestamp = event.timestamp
         }
     }
 
     fun reset() {
-        // TODO: Reset the ball's state
-        // ball?.reset()
-
-        // TODO: Update the StateFlow with the reset position
-        // ball?.let { ... }
-
-        // TODO: Reset the lastTimestamp
-        // lastTimestamp = 0L
+        ball?.reset()
+        ball?.let { b ->
+            _ballPosition.value = Offset(b.posX, b.posY)
+        }
+        lastTimestamp = 0L
     }
 }
+
